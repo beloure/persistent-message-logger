@@ -70,13 +70,13 @@ npm test
 bun test tests
 ```
 
-`npm test` rebuilds and runs 13 storage/merge tests under Node. `bun test tests` uses the official SDK testing preset and runs **65 tests**: 38 upstream tests, seven storage tests, six restoration-merge tests, and nine integration tests. The intentionally failing-feature test prints an expected error but passes.
+`npm test` rebuilds and runs 13 storage/merge tests under Node. `bun test tests` uses the official SDK testing preset and runs **65 tests**: 39 upstream/rendering tests, seven storage tests, six restoration-merge tests, nine integration tests, and four mobile-deletion regression tests. The intentionally failing-feature test prints an expected error but passes.
 
 The build uses the official CLI Rollup preset and its settings/i18n generators. Hermes bytecode is disabled; JavaScript source is supported by the installer. Vendored compiler/contract/shared/API sources preserve their license and make the build independent of the npm 0.11/current-source version mismatch. No production npm modules are loaded on the phone.
 
 Completed: official baseline build; 0.3.2 build; strict project type checking; all 65 tests; official client manifest parsing. Integration tests also simulate a restart and history load, assert the saved text returns with the official red/deleted decoration, and check dismissal, account/filter isolation and stop preservation.
 
-The user has confirmed the 0.2.0 settings work on their iPhone. **0.3.2 inline restoration has not yet been verified on the iPhone.** The native Discord 352.1 message-history payload and record converter have not been directly inspected in a live device runtime; tests exercise guarded raw/record handling using SDK mocks. On-device history-load behavior and actual force-close durability still need a test. Unknown payloads safely keep Discord's normal response and the saved archive remains available.
+The user confirmed the 0.2.0 settings and 0.3.0 inline restoration work on their iPhone. The subsequent mobile-deletion guard and 0.3.2 color picker still need an on-device retest. The native Discord 352.1 message-history payload and record converter have not been directly inspected in a live device runtime; tests exercise guarded raw/record handling using SDK mocks. On-device history-load behavior and actual force-close durability still need a test. Unknown payloads safely keep Discord's normal response and the saved archive remains available.
 
 ## Source and attribution
 
