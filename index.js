@@ -1,19 +1,10 @@
 ({__plugin:null,__load(){if(this.__plugin)return this.__plugin;this.__plugin=(()=>{"use strict";
 var Plugin = (() => {
-  var __create = Object.create;
   var __defProp = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
   var __getOwnPropNames = Object.getOwnPropertyNames;
-  var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
   var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-  var __commonJS = (cb, mod) => function __require() {
-    try {
-      return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-    } catch (e) {
-      throw mod = 0, e;
-    }
-  };
   var __export = (target, all) => {
     for (var name in all)
       __defProp(target, name, { get: all[name], enumerable: true });
@@ -26,37 +17,8 @@ var Plugin = (() => {
     }
     return to;
   };
-  var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
-    // If the importer is in node compatibility mode or this is not an ESM
-    // file that has been converted to a CommonJS file using a Babel-
-    // compatible transform (i.e. "__esModule" has not been set), then set
-    // "default" to the CommonJS "module.exports" for node compatibility.
-    isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
-    mod
-  ));
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
   var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-
-  // unbound:@unbound-app/api
-  var require_api = __commonJS({
-    "unbound:@unbound-app/api"(exports, module) {
-      module.exports = unbound;
-    }
-  });
-
-  // unbound:react-native
-  var require_react_native = __commonJS({
-    "unbound:react-native"(exports, module) {
-      module.exports = ReactNative;
-    }
-  });
-
-  // unbound:react
-  var require_react = __commonJS({
-    "unbound:react"(exports, module) {
-      module.exports = React;
-    }
-  });
 
   // src/index.tsx
   var index_exports = {};
@@ -66,9 +28,21 @@ var Plugin = (() => {
     stop: () => stopRuntime
   });
 
-  // src/runtime.ts
-  var import_api = __toESM(require_api(), 1);
-  var import_react_native = __toESM(require_react_native(), 1);
+  // unbound:@unbound-app/api
+  var api_default = unbound;
+  var flux = unbound.flux;
+  var fs = unbound.fs;
+
+  // unbound:react-native
+  var react_native_default = ReactNative;
+  var AppState = ReactNative.AppState;
+  var Alert = ReactNative.Alert;
+  var FlatList = ReactNative.FlatList;
+  var Pressable = ReactNative.Pressable;
+  var Switch = ReactNative.Switch;
+  var Text = ReactNative.Text;
+  var TextInput = ReactNative.TextInput;
+  var View = ReactNative.View;
 
   // src/archive.ts
   var defaults = {
@@ -208,12 +182,21 @@ var Plugin = (() => {
   };
 
   // src/runtime.ts
-  if (!import_api.flux?.getStore || !import_api.flux?.interceptAction || !import_api.fs?.writeFile) {
-    throw new Error("Requires current Unbound with Flux and filesystem APIs; the published 0.11 SDK is insufficient.");
+  var missingApis = [
+    ["flux.getStore", flux?.getStore],
+    ["flux.interceptAction", flux?.interceptAction],
+    ["flux.onAction", flux?.onAction],
+    ["flux.onStoreChange", flux?.onStoreChange],
+    ["fs.readFile", fs?.readFile],
+    ["fs.writeFile", fs?.writeFile],
+    ["fs.exists", fs?.exists]
+  ].filter(([, value]) => typeof value !== "function").map(([name]) => name);
+  if (missingApis.length) {
+    throw new Error(`Missing Unbound APIs: ${missingApis.join(", ")}. This is a plugin/runtime compatibility error.`);
   }
-  var users = import_api.flux.getStore("User");
-  var channels = import_api.flux.getStore("Channel");
-  var messages = import_api.flux.getStore("Message");
+  var users = flux.getStore("User");
+  var channels = flux.getStore("Channel");
+  var messages = flux.getStore("Message");
   var archive = emptyArchive();
   var disk;
   var active = false;
@@ -300,7 +283,7 @@ var Plugin = (() => {
   async function startRuntime() {
     if (active) return;
     const token = ++lifecycleToken;
-    disk = new Disk(import_api.fs);
+    disk = new Disk(fs);
     const loaded = await disk.load();
     if (token !== lifecycleToken) return;
     archive = loaded.archive;
@@ -316,14 +299,14 @@ var Plugin = (() => {
       status = "Recovered a backup. Capture paused; review history before resuming.";
     }
     removes.push(
-      import_api.flux.interceptAction("MESSAGE_DELETE", (a) => onEvent(a, "deleted")),
-      import_api.flux.interceptAction("MESSAGE_DELETE_BULK", (a) => onEvent(a, "deleted")),
-      import_api.flux.interceptAction("MESSAGE_UPDATE", (a) => onEvent(a, "edited")),
-      import_api.flux.onAction("CONNECTION_OPEN", notify),
-      import_api.flux.onAction("LOGOUT", notify),
-      import_api.flux.onStoreChange(users, notify)
+      flux.interceptAction("MESSAGE_DELETE", (a) => onEvent(a, "deleted")),
+      flux.interceptAction("MESSAGE_DELETE_BULK", (a) => onEvent(a, "deleted")),
+      flux.interceptAction("MESSAGE_UPDATE", (a) => onEvent(a, "edited")),
+      flux.onAction("CONNECTION_OPEN", notify),
+      flux.onAction("LOGOUT", notify),
+      flux.onStoreChange(users, notify)
     );
-    const appState = import_react_native.AppState.addEventListener("change", (value) => {
+    const appState = AppState.addEventListener("change", (value) => {
       if (value !== "active") void disk.flush().catch(() => {
       });
       else {
@@ -361,31 +344,35 @@ var Plugin = (() => {
     await save();
   }
 
+  // unbound:react
+  var react_default = React;
+  var useEffect = React.useEffect;
+  var useReducer = React.useReducer;
+  var useState = React.useState;
+
   // src/panel.tsx
-  var import_react = __toESM(require_react(), 1);
-  var import_react_native2 = __toESM(require_react_native(), 1);
   var foreground = "#f2f3f5";
   var label = { color: foreground, fontSize: 15 };
   var input = { color: foreground, backgroundColor: "#292b30", padding: 10, borderRadius: 6, marginVertical: 5 };
   function Button({ title, onPress }) {
-    return /* @__PURE__ */ import_react.default.createElement(
-      import_react_native2.Pressable,
+    return /* @__PURE__ */ react_default.createElement(
+      Pressable,
       {
         accessibilityRole: "button",
         onPress,
         style: { padding: 12, backgroundColor: "#41466b", borderRadius: 6, marginVertical: 5 }
       },
-      /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { style: label }, title)
+      /* @__PURE__ */ react_default.createElement(Text, { style: label }, title)
     );
   }
   function Toggle({ title, value, onChange }) {
-    return /* @__PURE__ */ import_react.default.createElement(import_react_native2.View, { style: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6 } }, /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { style: label }, title), /* @__PURE__ */ import_react.default.createElement(import_react_native2.Switch, { accessibilityLabel: title, value, onValueChange: onChange }));
+    return /* @__PURE__ */ react_default.createElement(View, { style: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6 } }, /* @__PURE__ */ react_default.createElement(Text, { style: label }, title), /* @__PURE__ */ react_default.createElement(Switch, { accessibilityLabel: title, value, onValueChange: onChange }));
   }
   function Field({ title, value, save: save2, numeric = false }) {
-    const [draft, setDraft] = (0, import_react.useState)(value);
-    (0, import_react.useEffect)(() => setDraft(value), [value]);
-    return /* @__PURE__ */ import_react.default.createElement(import_react_native2.View, null, /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { style: label }, title), /* @__PURE__ */ import_react.default.createElement(
-      import_react_native2.TextInput,
+    const [draft, setDraft] = useState(value);
+    useEffect(() => setDraft(value), [value]);
+    return /* @__PURE__ */ react_default.createElement(View, null, /* @__PURE__ */ react_default.createElement(Text, { style: label }, title), /* @__PURE__ */ react_default.createElement(
+      TextInput,
       {
         accessibilityLabel: title,
         style: input,
@@ -403,53 +390,53 @@ var Plugin = (() => {
     ));
   }
   function Record({ entry: e }) {
-    return /* @__PURE__ */ import_react.default.createElement(import_react_native2.View, { style: { padding: 10, marginVertical: 4, borderColor: "#555", borderWidth: 1, borderRadius: 6 } }, /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { selectable: true, style: label }, e.kind.toUpperCase(), " \xB7 ", new Date(e.capturedAt).toLocaleString()), /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { selectable: true, style: label }, e.before.authorName, " (", e.before.authorId, ")"), /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { selectable: true, style: label }, "Channel ", e.channelId, " \xB7 Message ", e.messageId), /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { selectable: true, style: label }, e.kind === "edited" ? "Before: " : "", e.before.content || "(no text)"), e.before.attachments.length > 0 && /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { selectable: true, style: label }, "File names: ", e.before.attachments.join(", ")), e.after && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { selectable: true, style: label }, "After: ", e.after.content || "(no text)"), e.after.attachments.length > 0 && /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { selectable: true, style: label }, "File names after: ", e.after.attachments.join(", "))));
+    return /* @__PURE__ */ react_default.createElement(View, { style: { padding: 10, marginVertical: 4, borderColor: "#555", borderWidth: 1, borderRadius: 6 } }, /* @__PURE__ */ react_default.createElement(Text, { selectable: true, style: label }, e.kind.toUpperCase(), " \xB7 ", new Date(e.capturedAt).toLocaleString()), /* @__PURE__ */ react_default.createElement(Text, { selectable: true, style: label }, e.before.authorName, " (", e.before.authorId, ")"), /* @__PURE__ */ react_default.createElement(Text, { selectable: true, style: label }, "Channel ", e.channelId, " \xB7 Message ", e.messageId), /* @__PURE__ */ react_default.createElement(Text, { selectable: true, style: label }, e.kind === "edited" ? "Before: " : "", e.before.content || "(no text)"), e.before.attachments.length > 0 && /* @__PURE__ */ react_default.createElement(Text, { selectable: true, style: label }, "File names: ", e.before.attachments.join(", ")), e.after && /* @__PURE__ */ react_default.createElement(react_default.Fragment, null, /* @__PURE__ */ react_default.createElement(Text, { selectable: true, style: label }, "After: ", e.after.content || "(no text)"), e.after.attachments.length > 0 && /* @__PURE__ */ react_default.createElement(Text, { selectable: true, style: label }, "File names after: ", e.after.attachments.join(", "))));
   }
   function SettingsPanel() {
-    const [, refresh] = (0, import_react.useReducer)((n) => n + 1, 0);
-    (0, import_react.useEffect)(() => subscribe(refresh), []);
+    const [, refresh] = useReducer((n) => n + 1, 0);
+    useEffect(() => subscribe(refresh), []);
     const current = state();
     const { archive: archive2, ready: ready2, status: status2, accountId: accountId2 } = current;
     const o = archive2.options;
-    const [query, setQuery] = (0, import_react.useState)("");
-    const [channel, setChannel] = (0, import_react.useState)("");
-    const [visible, setVisible] = (0, import_react.useState)(30);
-    (0, import_react.useEffect)(() => {
+    const [query, setQuery] = useState("");
+    const [channel, setChannel] = useState("");
+    const [visible, setVisible] = useState(30);
+    useEffect(() => {
       setQuery("");
       setChannel("");
       setVisible(30);
     }, [accountId2]);
     const entries = accountId2 ? search(archive2, accountId2, query, channel.trim()) : [];
     function confirmClear(all = false, channelId = "") {
-      import_react_native2.Alert.alert("Clear saved history?", all ? "Erase all saved events for every account on this device?" : channelId ? `Erase saved events in channel ${channelId} for this account?` : "Erase saved events for this account?", [
+      Alert.alert("Clear saved history?", all ? "Erase all saved events for every account on this device?" : channelId ? `Erase saved events in channel ${channelId} for this account?` : "Erase saved events for this account?", [
         { text: "Cancel", style: "cancel" },
         { text: "Clear", style: "destructive", onPress: () => {
           void clear(all, channelId);
         } }
       ]);
     }
-    return /* @__PURE__ */ import_react.default.createElement(import_react_native2.View, { style: { padding: 14, backgroundColor: "#1e1f22" } }, /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { accessibilityRole: "header", style: { ...label, fontSize: 20 } }, "Persistent Message Logger"), /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { style: label }, "Local, unencrypted history. Capture only where participants permit it. Device backups may contain these files. No recovery of uncaptured messages. Attachment names only."), /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { accessibilityLiveRegion: "polite", style: label }, status2), !ready2 ? /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { style: label }, "Enable the plugin to load the archive. If loading fails, the original files are preserved.") : /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { style: label }, "Account: ", accountId2 || "signed out", " \xB7 Limits apply to all accounts combined."), /* @__PURE__ */ import_react.default.createElement(Toggle, { title: "Capture edits and deletions", value: o.enabled, onChange: (v) => {
+    return /* @__PURE__ */ react_default.createElement(View, { style: { padding: 14, backgroundColor: "#1e1f22" } }, /* @__PURE__ */ react_default.createElement(Text, { accessibilityRole: "header", style: { ...label, fontSize: 20 } }, "Persistent Message Logger"), /* @__PURE__ */ react_default.createElement(Text, { style: label }, "Local, unencrypted history. Capture only where participants permit it. Device backups may contain these files. No recovery of uncaptured messages. Attachment names only."), /* @__PURE__ */ react_default.createElement(Text, { accessibilityLiveRegion: "polite", style: label }, status2), !ready2 ? /* @__PURE__ */ react_default.createElement(Text, { style: label }, "Enable the plugin to load the archive. If loading fails, the original files are preserved.") : /* @__PURE__ */ react_default.createElement(react_default.Fragment, null, /* @__PURE__ */ react_default.createElement(Text, { style: label }, "Account: ", accountId2 || "signed out", " \xB7 Limits apply to all accounts combined."), /* @__PURE__ */ react_default.createElement(Toggle, { title: "Capture edits and deletions", value: o.enabled, onChange: (v) => {
       void configure({ enabled: v });
-    } }), /* @__PURE__ */ import_react.default.createElement(Toggle, { title: "Ignore bots", value: o.ignoreBots, onChange: (v) => {
+    } }), /* @__PURE__ */ react_default.createElement(Toggle, { title: "Ignore bots", value: o.ignoreBots, onChange: (v) => {
       void configure({ ignoreBots: v });
-    } }), /* @__PURE__ */ import_react.default.createElement(Toggle, { title: "Ignore my messages", value: o.ignoreSelf, onChange: (v) => {
+    } }), /* @__PURE__ */ react_default.createElement(Toggle, { title: "Ignore my messages", value: o.ignoreSelf, onChange: (v) => {
       void configure({ ignoreSelf: v });
-    } }), /* @__PURE__ */ import_react.default.createElement(Field, { title: "Capture channel IDs (comma/space separated; blank = all accessible)", value: o.channels, save: (channels2) => {
+    } }), /* @__PURE__ */ react_default.createElement(Field, { title: "Capture channel IDs (comma/space separated; blank = all accessible)", value: o.channels, save: (channels2) => {
       void configure({ channels: channels2 });
-    } }), /* @__PURE__ */ import_react.default.createElement(Field, { title: "Ignored user IDs", value: o.ignoredUsers, save: (ignoredUsers) => {
+    } }), /* @__PURE__ */ react_default.createElement(Field, { title: "Ignored user IDs", value: o.ignoredUsers, save: (ignoredUsers) => {
       void configure({ ignoredUsers });
-    } }), /* @__PURE__ */ import_react.default.createElement(Field, { title: "Ignored server IDs", value: o.ignoredGuilds, save: (ignoredGuilds) => {
+    } }), /* @__PURE__ */ react_default.createElement(Field, { title: "Ignored server IDs", value: o.ignoredGuilds, save: (ignoredGuilds) => {
       void configure({ ignoredGuilds });
-    } }), /* @__PURE__ */ import_react.default.createElement(Field, { title: "Retention days (1\u201330; invalid values revert)", value: String(o.days), numeric: true, save: (v) => {
+    } }), /* @__PURE__ */ react_default.createElement(Field, { title: "Retention days (1\u201330; invalid values revert)", value: String(o.days), numeric: true, save: (v) => {
       const days = Number(v);
       if (Number.isInteger(days) && days >= 1 && days <= 30) void configure({ days });
       else refresh();
-    } }), /* @__PURE__ */ import_react.default.createElement(Field, { title: "Maximum events (50\u20132000; invalid values revert)", value: String(o.limit), numeric: true, save: (v) => {
+    } }), /* @__PURE__ */ react_default.createElement(Field, { title: "Maximum events (50\u20132000; invalid values revert)", value: String(o.limit), numeric: true, save: (v) => {
       const limit = Number(v);
       if (Number.isInteger(limit) && limit >= 50 && limit <= 2e3) void configure({ limit });
       else refresh();
-    } }), /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { style: label }, "Lowering limits immediately deletes older events. Text is capped at 16,000 characters per version and 20 file names. Total history has a size cap."), /* @__PURE__ */ import_react.default.createElement(Button, { title: "Clear this account's history", onPress: () => confirmClear() }), /* @__PURE__ */ import_react.default.createElement(Button, { title: "Clear ALL accounts on this device", onPress: () => confirmClear(true) }), /* @__PURE__ */ import_react.default.createElement(
-      import_react_native2.TextInput,
+    } }), /* @__PURE__ */ react_default.createElement(Text, { style: label }, "Lowering limits immediately deletes older events. Text is capped at 16,000 characters per version and 20 file names. Total history has a size cap."), /* @__PURE__ */ react_default.createElement(Button, { title: "Clear this account's history", onPress: () => confirmClear() }), /* @__PURE__ */ react_default.createElement(Button, { title: "Clear ALL accounts on this device", onPress: () => confirmClear(true) }), /* @__PURE__ */ react_default.createElement(
+      TextInput,
       {
         style: input,
         accessibilityLabel: "Search history",
@@ -463,8 +450,8 @@ var Plugin = (() => {
         autoCorrect: false,
         autoCapitalize: "none"
       }
-    ), /* @__PURE__ */ import_react.default.createElement(
-      import_react_native2.TextInput,
+    ), /* @__PURE__ */ react_default.createElement(
+      TextInput,
       {
         style: input,
         accessibilityLabel: "Filter history by channel ID",
@@ -477,17 +464,17 @@ var Plugin = (() => {
         },
         keyboardType: "number-pad"
       }
-    ), channel.trim() !== "" && /* @__PURE__ */ import_react.default.createElement(Button, { title: "Clear this channel's history", onPress: () => confirmClear(false, channel.trim()) }), /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { style: label }, entries.length, " matching saved events \xB7 newest first"), /* @__PURE__ */ import_react.default.createElement(
-      import_react_native2.FlatList,
+    ), channel.trim() !== "" && /* @__PURE__ */ react_default.createElement(Button, { title: "Clear this channel's history", onPress: () => confirmClear(false, channel.trim()) }), /* @__PURE__ */ react_default.createElement(Text, { style: label }, entries.length, " matching saved events \xB7 newest first"), /* @__PURE__ */ react_default.createElement(
+      FlatList,
       {
         style: { maxHeight: 440 },
         nestedScrollEnabled: true,
         data: entries.slice(0, visible),
         keyExtractor: (e) => `${e.accountId}:${e.messageId}:${e.kind}:${e.capturedAt}:${archive2.entries.indexOf(e)}`,
-        renderItem: ({ item }) => /* @__PURE__ */ import_react.default.createElement(Record, { entry: item }),
-        ListEmptyComponent: /* @__PURE__ */ import_react.default.createElement(import_react_native2.Text, { style: label }, "No saved events match.")
+        renderItem: ({ item }) => /* @__PURE__ */ react_default.createElement(Record, { entry: item }),
+        ListEmptyComponent: /* @__PURE__ */ react_default.createElement(Text, { style: label }, "No saved events match.")
       }
-    ), entries.length > visible && /* @__PURE__ */ import_react.default.createElement(Button, { title: "Show 30 more", onPress: () => setVisible((n) => n + 30) })));
+    ), entries.length > visible && /* @__PURE__ */ react_default.createElement(Button, { title: "Show 30 more", onPress: () => setVisible((n) => n + 30) })));
   }
   return __toCommonJS(index_exports);
 })();
