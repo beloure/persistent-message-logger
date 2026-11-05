@@ -1,0 +1,13 @@
+{
+  "id": "local.persistent-message-logger",
+  "name": "Persistent Message Logger",
+  "description": "Locally saves captured message edits and deletions with search and retention controls.",
+  "authors": [
+    {
+      "name": "Local custom build",
+      "id": "0"
+    }
+  ],
+  "version": "0.1.0",
+  "main": "index.js"
+}
