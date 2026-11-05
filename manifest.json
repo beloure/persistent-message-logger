@@ -1,13 +1,42 @@
 {
-  "id": "local.persistent-message-logger",
-  "name": "Persistent Message Logger",
-  "description": "Locally saves captured message edits and deletions with search and retention controls.",
-  "authors": [
-    {
-      "name": "Local custom build",
-      "id": "0"
-    }
-  ],
-  "version": "0.1.2",
-  "main": "index.js"
+	"id": "local.persistent-message-logger",
+	"name": "Persistent Message Logger",
+	"description": "Unofficial fork of Unbound Message Logger with a local persistent archive, search and retention.",
+	"authors": [
+		{
+			"name": "rushii",
+			"id": "295190422244950017"
+		},
+		{
+			"name": "V",
+			"id": "343383572805058560"
+		},
+		{
+			"name": "AutumnVN",
+			"id": "393694671383166998"
+		},
+		{
+			"name": "Nickyux",
+			"id": "427146305651998721"
+		},
+		{
+			"name": "Kyuuhachi",
+			"id": "236588665420251137"
+		},
+		{
+			"name": "sadan",
+			"id": "521819891141967883"
+		},
+		{
+			"name": "f3tch",
+			"id": "1016388460929626174"
+		},
+		{
+			"name": "adrian",
+			"id": "224617799434108928"
+		}
+	],
+	"version": "0.2.0",
+	"icon": "EyeIcon",
+	"main": "index.js"
 }
