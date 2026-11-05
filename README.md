@@ -1,4 +1,4 @@
-# Persistent Message Logger 0.3.0 — unofficial fork
+# Persistent Message Logger 0.3.1 — unofficial fork
 
 Based directly on Unbound's official Message Logger source, with a local persistent archive and inline restoration of captured deleted text. The original authors are credited in the manifest; this is not an official Unbound release.
 
@@ -22,7 +22,7 @@ Keep the existing manifest URL, for example:
 https://YOUR-USERNAME.github.io/persistent-message-logger/manifest.json
 ```
 
-Wait for GitHub Pages to finish publishing. Update/reinstall from the same URL; check that the card says **0.3.0**. Leave recovery mode if needed, restart Discord and enable this fork. **Keep the official Message Logger and any other logger disabled while using the fork**: both patch the same events and chat rows.
+Wait for GitHub Pages to finish publishing. Update/reinstall from the same URL; check that the card says **0.3.1**. Leave recovery mode if needed, restart Discord and enable this fork. **Keep the official Message Logger and any other logger disabled while using the fork**: both patch the same events and chat rows.
 
 Only the public code/source is hosted. Captured records stay in files on the phone.
 
@@ -70,16 +70,20 @@ npm test
 bun test tests
 ```
 
-`npm test` rebuilds and runs 13 storage/merge tests under Node. `bun test tests` uses the official SDK testing preset and runs **60 tests**: 38 upstream tests, seven storage tests, six restoration-merge tests, and nine integration tests. The intentionally failing-feature test prints an expected error but passes.
+`npm test` rebuilds and runs 13 storage/merge tests under Node. `bun test tests` uses the official SDK testing preset and runs **64 tests**: 38 upstream tests, seven storage tests, six restoration-merge tests, and nine integration tests. The intentionally failing-feature test prints an expected error but passes.
 
 The build uses the official CLI Rollup preset and its settings/i18n generators. Hermes bytecode is disabled; JavaScript source is supported by the installer. Vendored compiler/contract/shared/API sources preserve their license and make the build independent of the npm 0.11/current-source version mismatch. No production npm modules are loaded on the phone.
 
-Completed: official baseline build; 0.3.0 build; strict project type checking; all 60 tests; official client manifest parsing. Integration tests also simulate a restart and history load, assert the saved text returns with the official red/deleted decoration, and check dismissal, account/filter isolation and stop preservation.
+Completed: official baseline build; 0.3.1 build; strict project type checking; all 64 tests; official client manifest parsing. Integration tests also simulate a restart and history load, assert the saved text returns with the official red/deleted decoration, and check dismissal, account/filter isolation and stop preservation.
 
-The user has confirmed the 0.2.0 settings work on their iPhone. **0.3.0 inline restoration has not yet been verified on the iPhone.** The native Discord 352.1 message-history payload and record converter have not been directly inspected in a live device runtime; tests exercise guarded raw/record handling using SDK mocks. On-device history-load behavior and actual force-close durability still need a test. Unknown payloads safely keep Discord's normal response and the saved archive remains available.
+The user has confirmed the 0.2.0 settings work on their iPhone. **0.3.1 inline restoration has not yet been verified on the iPhone.** The native Discord 352.1 message-history payload and record converter have not been directly inspected in a live device runtime; tests exercise guarded raw/record handling using SDK mocks. On-device history-load behavior and actual force-close durability still need a test. Unknown payloads safely keep Discord's normal response and the saved archive remains available.
 
 ## Source and attribution
 
 Upstream: <https://github.com/marioparaschiv/unbound>, commit `6b0f3d762004758f5bd3082d5c500cdf2b711990`. Its Message Logger code/settings match the user's Unbound commit `bea93f7d146092cb72ed7892c3c97174ba7af6ae` (no differences in those paths). The official source files that changed are listed in `UPSTREAM-NOTES.md`.
 
 GPL-3.0-only; see `LICENSE`. Keep the original author credits, license and corresponding source with redistributed builds. `source.zip` contains this project's source and vendored build/shared/API sources, without node_modules or captured user data.
+
+## Mobile deletion fix in 0.3.1
+
+Locally initiated deleteMessage calls can produce an optimistic deletion plus a server confirmation. A bounded, one-confirmation guard keeps that confirmation from being interpreted as Dismiss. Explicit onlyLocal dismissals bypass the guard. The original delete request, arguments and return value are preserved. Four SDK regression tests cover phone deletion, explicit/immediate dismissal, and a server-only deletion. This sequence is simulated in tests; the exact phone-side event sequence still needs the user’s retest.

@@ -36,7 +36,7 @@
 			"id": "224617799434108928"
 		}
 	],
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"icon": "EyeIcon",
 	"main": "index.js"
 }
