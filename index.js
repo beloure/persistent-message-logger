@@ -32,12 +32,12 @@ var Plugin = (() => {
   var api_default = unbound;
   var flux = unbound.flux;
   var fs = unbound.fs;
+  var ui = unbound.ui;
 
   // unbound:react-native
   var react_native_default = ReactNative;
   var AppState = ReactNative.AppState;
   var Alert = ReactNative.Alert;
-  var FlatList = ReactNative.FlatList;
   var Pressable = ReactNative.Pressable;
   var Switch = ReactNative.Switch;
   var Text = ReactNative.Text;
@@ -392,7 +392,22 @@ var Plugin = (() => {
   function Record({ entry: e }) {
     return /* @__PURE__ */ react_default.createElement(View, { style: { padding: 10, marginVertical: 4, borderColor: "#555", borderWidth: 1, borderRadius: 6 } }, /* @__PURE__ */ react_default.createElement(Text, { selectable: true, style: label }, e.kind.toUpperCase(), " \xB7 ", new Date(e.capturedAt).toLocaleString()), /* @__PURE__ */ react_default.createElement(Text, { selectable: true, style: label }, e.before.authorName, " (", e.before.authorId, ")"), /* @__PURE__ */ react_default.createElement(Text, { selectable: true, style: label }, "Channel ", e.channelId, " \xB7 Message ", e.messageId), /* @__PURE__ */ react_default.createElement(Text, { selectable: true, style: label }, e.kind === "edited" ? "Before: " : "", e.before.content || "(no text)"), e.before.attachments.length > 0 && /* @__PURE__ */ react_default.createElement(Text, { selectable: true, style: label }, "File names: ", e.before.attachments.join(", ")), e.after && /* @__PURE__ */ react_default.createElement(react_default.Fragment, null, /* @__PURE__ */ react_default.createElement(Text, { selectable: true, style: label }, "After: ", e.after.content || "(no text)"), e.after.attachments.length > 0 && /* @__PURE__ */ react_default.createElement(Text, { selectable: true, style: label }, "File names after: ", e.after.attachments.join(", "))));
   }
+  var PanelBoundary = class extends react_default.Component {
+    constructor() {
+      super(...arguments);
+      __publicField(this, "state", { failed: false });
+    }
+    static getDerivedStateFromError() {
+      return { failed: true };
+    }
+    render() {
+      return this.state.failed ? /* @__PURE__ */ react_default.createElement(View, { collapsable: false, style: { padding: 16 } }, /* @__PURE__ */ react_default.createElement(Text, { style: label }, "The message history viewer could not render. Close this page and disable the plugin. Saved history has not been cleared.")) : this.props.children;
+    }
+  };
   function SettingsPanel() {
+    return /* @__PURE__ */ react_default.createElement(PanelBoundary, null, /* @__PURE__ */ react_default.createElement(ui.Page, null, /* @__PURE__ */ react_default.createElement(SettingsContent, null)));
+  }
+  function SettingsContent() {
     const [, refresh] = useReducer((n) => n + 1, 0);
     useEffect(() => subscribe(refresh), []);
     const current = state();
@@ -415,7 +430,7 @@ var Plugin = (() => {
         } }
       ]);
     }
-    return /* @__PURE__ */ react_default.createElement(View, { style: { padding: 14, backgroundColor: "#1e1f22" } }, /* @__PURE__ */ react_default.createElement(Text, { accessibilityRole: "header", style: { ...label, fontSize: 20 } }, "Persistent Message Logger"), /* @__PURE__ */ react_default.createElement(Text, { style: label }, "Local, unencrypted history. Capture only where participants permit it. Device backups may contain these files. No recovery of uncaptured messages. Attachment names only."), /* @__PURE__ */ react_default.createElement(Text, { accessibilityLiveRegion: "polite", style: label }, status2), !ready2 ? /* @__PURE__ */ react_default.createElement(Text, { style: label }, "Enable the plugin to load the archive. If loading fails, the original files are preserved.") : /* @__PURE__ */ react_default.createElement(react_default.Fragment, null, /* @__PURE__ */ react_default.createElement(Text, { style: label }, "Account: ", accountId2 || "signed out", " \xB7 Limits apply to all accounts combined."), /* @__PURE__ */ react_default.createElement(Toggle, { title: "Capture edits and deletions", value: o.enabled, onChange: (v) => {
+    return /* @__PURE__ */ react_default.createElement(View, { collapsable: false, style: { padding: 14, backgroundColor: "#1e1f22" } }, /* @__PURE__ */ react_default.createElement(Text, { accessibilityRole: "header", style: { ...label, fontSize: 20 } }, "Persistent Message Logger"), /* @__PURE__ */ react_default.createElement(Text, { style: label }, "Local, unencrypted history. Capture only where participants permit it. Device backups may contain these files. No recovery of uncaptured messages. Attachment names only."), /* @__PURE__ */ react_default.createElement(Text, { accessibilityLiveRegion: "polite", style: label }, status2), !ready2 ? /* @__PURE__ */ react_default.createElement(Text, { style: label }, "Enable the plugin to load the archive. If loading fails, the original files are preserved.") : /* @__PURE__ */ react_default.createElement(react_default.Fragment, null, /* @__PURE__ */ react_default.createElement(Text, { style: label }, "Account: ", accountId2 || "signed out", " \xB7 Limits apply to all accounts combined."), /* @__PURE__ */ react_default.createElement(Toggle, { title: "Capture edits and deletions", value: o.enabled, onChange: (v) => {
       void configure({ enabled: v });
     } }), /* @__PURE__ */ react_default.createElement(Toggle, { title: "Ignore bots", value: o.ignoreBots, onChange: (v) => {
       void configure({ ignoreBots: v });
@@ -464,17 +479,7 @@ var Plugin = (() => {
         },
         keyboardType: "number-pad"
       }
-    ), channel.trim() !== "" && /* @__PURE__ */ react_default.createElement(Button, { title: "Clear this channel's history", onPress: () => confirmClear(false, channel.trim()) }), /* @__PURE__ */ react_default.createElement(Text, { style: label }, entries.length, " matching saved events \xB7 newest first"), /* @__PURE__ */ react_default.createElement(
-      FlatList,
-      {
-        style: { maxHeight: 440 },
-        nestedScrollEnabled: true,
-        data: entries.slice(0, visible),
-        keyExtractor: (e) => `${e.accountId}:${e.messageId}:${e.kind}:${e.capturedAt}:${archive2.entries.indexOf(e)}`,
-        renderItem: ({ item }) => /* @__PURE__ */ react_default.createElement(Record, { entry: item }),
-        ListEmptyComponent: /* @__PURE__ */ react_default.createElement(Text, { style: label }, "No saved events match.")
-      }
-    ), entries.length > visible && /* @__PURE__ */ react_default.createElement(Button, { title: "Show 30 more", onPress: () => setVisible((n) => n + 30) })));
+    ), channel.trim() !== "" && /* @__PURE__ */ react_default.createElement(Button, { title: "Clear this channel's history", onPress: () => confirmClear(false, channel.trim()) }), /* @__PURE__ */ react_default.createElement(Text, { style: label }, entries.length, " matching saved events \xB7 newest first"), /* @__PURE__ */ react_default.createElement(View, { collapsable: false }, entries.length === 0 ? /* @__PURE__ */ react_default.createElement(Text, { style: label }, "No saved events match.") : entries.slice(0, visible).map((e) => /* @__PURE__ */ react_default.createElement(Record, { key: `${e.accountId}:${e.messageId}:${e.kind}:${e.capturedAt}:${archive2.entries.indexOf(e)}`, entry: e }))), entries.length > visible && /* @__PURE__ */ react_default.createElement(Button, { title: "Show 30 more", onPress: () => setVisible((n) => n + 30) })));
   }
   return __toCommonJS(index_exports);
 })();
